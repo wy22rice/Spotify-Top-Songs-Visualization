@@ -1,0 +1,61 @@
+---
+title: "DSCI 304 Project"
+author: "Bobby Yang"
+date: "11/30/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+data <- read.csv('C:\\Users\\Fei\\Documents\\school stuff\\Spotify-2000.csv')
+#View(data)
+```
+
+```{r}
+library(tidyverse)
+top_artist <- data %>% group_by(Artist) %>% summarize(n())
+top_artist <- top_artist %>% arrange(desc(`n()`))
+top_artist <- top_artist[seq(10),]
+ggplot(top_artist,aes(reorder(Artist,-`n()`),`n()`)) + geom_bar(stat='identity',fill='#00798c') + theme(axis.text.x = element_text(angle = 45, hjust = 1),plot.background = element_rect(fill = "lightblue")) + xlab('Artist') + ylab('Top Songs') + ggtitle('Artists by top songs')
+```
+
+```{r}
+genre_dat <- data %>% group_by(Top.Genre) %>% summarize(n())
+genre_dat <- genre_dat %>% arrange(desc(`n()`))
+genre_dat
+genre_dat <- data[which(data$Top.Genre == c('classic rock','alternative rock','alternative metal','pop','adult standards')),]
+ggplot(genre_dat,aes(Top.Genre,Energy)) + geom_boxplot(fill = '#92D895') + theme(plot.background = element_rect(fill = "lightblue")) + xlab('Genre') + ggtitle('Genres by energy')
+```
+
+```{r}
+library(plotly)
+data$decade <- substr(data$Year,3,3)
+data$decade <- factor(data$decade,levels=c('5','6','7','8','9','0','1'))
+levels(data$decade) <- c('50s','60s','70s','80s','90s','00s','10s')
+data_small <- data[sample(seq(1994),500),]
+int_plot <- ggplot(data_small,aes(Valence,Danceability,col=decade,text=Title,text2=Artist)) + geom_point() + ggtitle('Danceability vs Valence plot')
+ggplotly(int_plot, tooltip = c('text','text2'))
+```
+
+```{r}
+library(gganimate)
+loud_dat <- data %>% group_by(decade) %>% summarize(mean(Loudness..dB.))
+loud_dat
+loud_plot <- ggplot(data,aes(`Loudness..dB.`)) + geom_histogram()  + theme(plot.background = element_rect(fill = "lightblue")) + xlab('Loudness (dB)') + ylab('Song frequency') + ggtitle('Decades by song loudness') + labs(subtitle = 'Decade: {closest_state}')
+loud_anim <- loud_plot + transition_states(decade)
+animate(loud_anim, renderer=gifski_renderer())
+anim_save("animated graph.gif")
+ggplot(loud_dat,aes(decade,`mean(Loudness..dB.)`,group=1)) + geom_line(col='#619CFF',size=.75) + geom_point(size=2)  + theme(plot.background = element_rect(fill = "lightblue")) + ylab('Average loudness (dB)') + ggtitle('Decades by average loudness')
+```
+
+```{r}
+library(stargazer)
+cor(data.matrix(data[,c(seq(5,15))]))
+data1 <- data
+data1$Length..Duration. <- as.numeric(data1$Length..Duration.)
+model <- lm(Popularity ~.,data=data1[,c(seq(5,15))])
+stargazer(model,type='text')
+summary(model)
+cplot(model,'Danceability',col='blue',se.fill='lightblue',ylab='Predicted popularity',main='Popularity vs danceability substantive effects plot')
+```
